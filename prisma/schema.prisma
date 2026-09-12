@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Existing model, extended with the `shares` relation only.
+// Fields, types, and constraints on `user` itself are unchanged.
+model user {
+  id       String @unique @id @default(cuid())
+  username String @unique
+  password String
+
+  shares Share[]
+}
+
+model Share {
+  id         String   @id @default(cuid())
+  uniqueId   String   @unique // 8-digit public share ID
+  userId     String   @unique // one active share per user (enforced here)
+  folderName String?
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  user  user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files File[]
+
+  @@index([expiresAt])
+}
+
+model File {
+  id           String   @id @default(cuid())
+  originalName String
+  relativePath String?
+  publicId     String
+  secureUrl    String
+  mimeType     String?
+  size         Int
+  resourceType String?
+  format       String?
+  createdAt    DateTime @default(now())
+
+  shareId String
+  share   Share  @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@index([shareId])
+}
